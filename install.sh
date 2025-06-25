@@ -68,6 +68,15 @@ log() {
     fi
 }
 
+safe_sed() {
+    # usage: safe_sed "pattern" "filename"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$1" "$2"  # macOS
+    else
+        sed -i "$1" "$2"     # Linux
+    fi
+}
+
 # Extract alias name from script path (removes .sh extension)
 get_alias_name() {
     local alias_path=$1
@@ -102,7 +111,7 @@ add_alias_to_path() {
     # Escape special regex characters in the alias command for sed
     local escaped_alias_command=$(echo "$alias_command" | sed 's/[[\.*^$()+?{|]/\\&/g')
     # Insert the alias command before the END_MARKER
-    sed -i '' "/$END_MARKER/i\\
+    safe_sed "/$END_MARKER/i\\
 $escaped_alias_command
 " "$BASH_PROFILE_PATH"
 }
@@ -112,7 +121,7 @@ replace_line_in_bash_profile() {
     local line_number=$1
     local new_line=$2
     # Replace the line at the specified line number
-    sed -i '' "${line_number}c\\
+    safe_sed "${line_number}c\\
 $new_line
 " $BASH_PROFILE_PATH
 }
@@ -193,7 +202,7 @@ run_install() {
                 local line_text=$(sed -n "${line_number}p" $BASH_PROFILE_PATH)
                 if [[ $line_text == "alias $active_alias_name="* ]]; then
                     log "removing alias: $active_alias_name"
-                    sed -i '' "${line_number}d" $BASH_PROFILE_PATH
+                    safe_sed "${line_number}d" $BASH_PROFILE_PATH
                     break
                 fi
             done
@@ -211,7 +220,7 @@ run_install() {
 
     # Ensure the header marker appears after the end marker (for self-installation)
     if ! grep -A1 "$END_MARKER" $BASH_PROFILE_PATH | grep -q "$HEADER_MARKER"; then
-        sed -i '' "/$END_MARKER/a\\
+        safe_sed "/$END_MARKER/a\\
 $HEADER_MARKER
 " $BASH_PROFILE_PATH
     fi
