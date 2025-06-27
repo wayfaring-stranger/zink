@@ -1,14 +1,17 @@
 #!/bin/bash
 # Zink Installation Script
-# This script automatically installs shell script aliases by modifying the user's .zshrc file
+# This script automatically installs shell script aliases by modifying the user's bash profile
 # It manages aliases for all .sh files found in the src/ directory
 
 SRC_DIRPATH=$(realpath $(dirname $0))  # Absolute path to the directory containing this script
 CONFIG_PATH="$SRC_DIRPATH/.config"  # Path to the configuration file
+ALIAS_FILE="$SRC_DIRPATH/.active-aliases"  # Path to the alias file
 
 # if config path does not exist:
 if [ ! -f "$CONFIG_PATH" ]; then
-    # create it
+    # create it and alias file
+    touch $CONFIG_PATH
+    touch $ALIAS_FILE
     
     # get user input for BASH_PROFILE_PATH
     read -p "Enter the path to your shell configuration file:" BASH_PROFILE_PATH
@@ -44,7 +47,7 @@ fi
 
 # Script identification and markers
 NAME="Zink"
-HEADER_MARKER="### $NAME ###"  # Marker to identify this script's section in .zshrc
+HEADER_MARKER="### $NAME ###"  # Marker to identify this script's section in bash profile
 START_MARKER="###    Aliases-Start    ###"  # Start marker for alias section
 END_MARKER="###    Aliases-End    ###"  # End marker for alias section
 INSTALL_FMT_NAME=$(echo $NAME | sed 's/-/_/g')  # Convert NAME to valid variable name format
@@ -53,8 +56,6 @@ INSTALL_DIRPATH_VAR="$UPPERCASED_NAME"_DIR  # Environment variable name for scri
 INSTALL_DIRPATH_VAR_VALUE="\"$SRC_DIRPATH\""  # Value for the environment variable
 EXPORT_VAR="export $INSTALL_DIRPATH_VAR=$INSTALL_DIRPATH_VAR_VALUE"  # Full export statement
 
-# Self-installation command for silent mode
-INSTALL_COMMAND="bash $SRC_DIRPATH/install.sh silent"
 
 # Self-installation command for silent mode
 INSTALL_COMMAND="bash $SRC_DIRPATH/install.sh silent"
@@ -224,7 +225,6 @@ run_install() {
 $HEADER_MARKER
 " $BASH_PROFILE_PATH
     fi
-
     log "done"
 }
 
