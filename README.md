@@ -205,4 +205,20 @@ zink/
 
 ---
 
+**Quick Start**
+
+curl -L -o zink.zip https://github.com/wayfaring-stranger/zink/archive/refs/heads/main.zip;
+unzip zink.zip -d zink;
+rm zink.zip;
+# move zink/zink-main/src to zink/src
+mv zink/zink-main/src/ zink/src/;
+mv zink/zink-main/constants.sh zink/constants.sh;
+mv zink/zink-main/utils.sh zink/utils.sh;
+mv zink/zink-main/zink.sh zink/zink.sh;
+mv zink/zink-main/install.sh zink/install.sh;
+rm -rf zink/zink-main;
+cd zink;
+bash install.sh;
+cd ~;
+
 **Note**: Zink is designed to work with any shell configuration file. The installation script will prompt you to specify the correct path for your system and shell preference.
