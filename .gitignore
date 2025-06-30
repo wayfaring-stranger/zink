@@ -1,0 +1,4 @@
+dev/*
+src/task.sh
+.cache
+.config
