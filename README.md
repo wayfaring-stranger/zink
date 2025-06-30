@@ -210,7 +210,6 @@ zink/
 curl -L -o zink.zip https://github.com/wayfaring-stranger/zink/archive/refs/heads/main.zip;
 unzip zink.zip -d zink;
 rm zink.zip;
-# move zink/zink-main/src to zink/src
 mv zink/zink-main/src/ zink/src/;
 mv zink/zink-main/constants.sh zink/constants.sh;
 mv zink/zink-main/utils.sh zink/utils.sh;
