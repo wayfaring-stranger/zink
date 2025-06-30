@@ -1,63 +1,18 @@
 #!/bin/bash
 # Zink Installation Script
-# This script automatically installs shell script aliases by modifying the user's .zshrc file
+# This script automatically installs shell script aliases by modifying the user's bash profile
 # It manages aliases for all .sh files found in the src/ directory
+SRC_DIRPATH=$(dirname $(realpath $0))
 
-SRC_DIRPATH=$(realpath $(dirname $0))  # Absolute path to the directory containing this script
-CONFIG_PATH="$SRC_DIRPATH/.config"  # Path to the configuration file
+source $SRC_DIRPATH/utils.sh
+source $SRC_DIRPATH/constants.sh
 
-# if config path does not exist:
-if [ ! -f "$CONFIG_PATH" ]; then
-    # create it
-    
-    # get user input for BASH_PROFILE_PATH
-    read -p "Enter the path to your shell configuration file:" BASH_PROFILE_PATH
-
-    # if bash profile path does not have $HOME in it, add it
-    if [[ $BASH_PROFILE_PATH != $HOME* ]]; then
-        BASH_PROFILE_PATH="$HOME/$BASH_PROFILE_PATH"
-    fi
-
-    # ensure BASH_PROFILE_PATH exists
-    if [ ! -f "$BASH_PROFILE_PATH" ]; then
-        echo "Error: BASH_PROFILE_PATH [$BASH_PROFILE_PATH] does not exist"
-        exit 1
-    fi
-    touch $CONFIG_PATH
-
-    # add BASH_PROFILE_PATH to it
-    echo "BASH_PROFILE_PATH=$BASH_PROFILE_PATH" >>$CONFIG_PATH
-
+# if cache does not exist, create it
+if [ ! -f "$CACHED_ALIAS_PATHS_FILE" ]; then
+    touch "$CACHED_ALIAS_PATHS_FILE"
 fi
 
-
-
-
-if [ -f "$CONFIG_PATH" ]; then
-    # Import config
-    export $(cat $CONFIG_PATH | sed 's/#.*//g' | xargs)
-else
-    echo "Error: .config file not found"
-    exit 1
-fi
-
-
-# Script identification and markers
-NAME="Zink"
-HEADER_MARKER="### $NAME ###"  # Marker to identify this script's section in .zshrc
-START_MARKER="###    Aliases-Start    ###"  # Start marker for alias section
-END_MARKER="###    Aliases-End    ###"  # End marker for alias section
-INSTALL_FMT_NAME=$(echo $NAME | sed 's/-/_/g')  # Convert NAME to valid variable name format
-UPPERCASED_NAME=$(echo $NAME | tr '[:lower:]' '[:upper:]')
-INSTALL_DIRPATH_VAR="$UPPERCASED_NAME"_DIR  # Environment variable name for script directory
-INSTALL_DIRPATH_VAR_VALUE="\"$SRC_DIRPATH\""  # Value for the environment variable
-EXPORT_VAR="export $INSTALL_DIRPATH_VAR=$INSTALL_DIRPATH_VAR_VALUE"  # Full export statement
-
 # Self-installation command for silent mode
-INSTALL_COMMAND="bash $SRC_DIRPATH/install.sh silent"
-
-# Self-installation command for silent mode
-INSTALL_COMMAND="bash $SRC_DIRPATH/install.sh silent"
 SILENT=$1  # First command line argument (for silent mode)
 
 # Logging function - only prints messages unless silent mode is enabled
@@ -77,21 +32,6 @@ safe_sed() {
     fi
 }
 
-# Extract alias name from script path (removes .sh extension)
-get_alias_name() {
-    local alias_path=$1
-    local alias_path_basename=$(basename $alias_path)  # Get filename without path
-    local alias_name=$(echo $alias_path_basename | sed 's/\.sh$//')  # Remove .sh extension
-    echo $alias_name
-}
-
-# Generate the alias command string for a given script path
-get_alias_command() {
-    local alias_path=$1
-    local alias_name=$(get_alias_name $alias_path)
-    local alias_command="alias $alias_name=\"bash $alias_path\";"  # Create alias command
-    echo $alias_command
-}
 
 # Check if a specific text exists in the bash profile
 bash_profile_contains_text() {
@@ -158,12 +98,31 @@ run_install() {
     ensure_install
 
     # Find all .sh files in the src directory that need to be installed as aliases
-    local alias_paths_to_install=$(find $SRC_DIRPATH/src -name "*.sh")
+    local alias_paths_to_install=()
     local alias_names_to_install=()
 
+    # Process cached alias paths and copy them to the aliases directory if needed
+    if [ -f "$CACHED_ALIAS_PATHS_FILE" ]; then
+        while IFS= read -r alias_path; do
+            if [ -n "$alias_path" ] && [ -f "$alias_path" ]; then
+                local alias_name=$(get_alias_name "$alias_path")
+                if [[ $alias_path != "$ALIASES_DIRPATH"* ]]; then
+                    cp "$alias_path" "$ALIASES_DIRPATH/$alias_name.sh"
+                fi
+            fi
+        done < "$CACHED_ALIAS_PATHS_FILE"
+    fi
+    
+    # Find all .sh files in the aliases directory
+    for alias_path in $(find $ALIASES_DIRPATH -name "*.sh"); do
+        alias_paths_to_install+=("$alias_path")
+    done
+    alias_paths_to_install+=("$PROGRAM_ALIAS_PATH")
+
     # Build array of alias names from the script paths
-    for alias_path in $alias_paths_to_install; do
-        local alias_name=$(get_alias_name $alias_path)
+    for alias_path in "${alias_paths_to_install[@]}"; do
+        echo "alias path: $alias_path"
+        local alias_name=$(get_alias_name "$alias_path")
         alias_names_to_install+=("$alias_name")
     done
 
@@ -183,7 +142,7 @@ run_install() {
             active_alias_names+=("$line_alias_name")
             
             # Update existing aliases if the script still exists
-            for alias_path in $alias_paths_to_install; do
+            for alias_path in "${alias_paths_to_install[@]}"; do
                 local alias_name=$(get_alias_name $alias_path)
                 if [[ $line_alias_name == $alias_name ]]; then
                     local alias_command=$(get_alias_command $alias_path)
@@ -210,7 +169,7 @@ run_install() {
     done
 
     # Add new aliases for scripts that don't have existing aliases
-    for alias_path_to_install in $alias_paths_to_install; do
+    for alias_path_to_install in "${alias_paths_to_install[@]}"; do
         local alias_name=$(get_alias_name $alias_path_to_install)
         if ! echo "${active_alias_names[@]}" | grep -q "$alias_name"; then
             log "adding alias: $alias_name ($alias_path_to_install)"
@@ -224,9 +183,7 @@ run_install() {
 $HEADER_MARKER
 " $BASH_PROFILE_PATH
     fi
-
     log "done"
 }
 
-# Execute the installation
-run_install
+run_install "$@"
