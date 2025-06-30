@@ -121,7 +121,6 @@ run_install() {
 
     # Build array of alias names from the script paths
     for alias_path in "${alias_paths_to_install[@]}"; do
-        echo "alias path: $alias_path"
         local alias_name=$(get_alias_name "$alias_path")
         alias_names_to_install+=("$alias_name")
     done
